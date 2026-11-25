@@ -76,8 +76,34 @@ Um SDK único (`tlife.*`) era a ideia original, mas entregava a todo serviço ca
 
 - Schema `core`: perfil, perfil_hermes + perfil_hermes_notas, chave_recuperacao, serviços ativos, eventos, inbox, notificações, áreas.
 - Um schema `svc_<id>` por serviço.
-- Para o schema próprio funcionar pela API, ele precisa estar nos *Exposed schemas* do Supabase (`[api] schemas` no `supabase/config.toml` local, e nas configurações da API na nuvem). A alternativa é usar prefixo no `public` (`svc_tasks_cards`).
+- Para o schema próprio funcionar pela API, ele precisa estar nos *Exposed schemas* do Supabase (`api.schemas` no `supabase/config.jsonc` local, e nas configurações da API na nuvem). A alternativa é usar prefixo no `public` (`svc_tasks_cards`).
 - **Onde roda:** local no desenvolvimento (`npx supabase start`, Supabase CLI sobre Docker), nuvem do Supabase em produção. O schema só muda por migração em `supabase/migrations/`, testada local (`supabase db reset`) e aplicada na nuvem com `supabase db push`.
+
+**Esquema do `core` (primeira migração, `20261125023505_core_schema.sql`):**
+
+```sql
+core.perfil              (id,                      -- = auth.users.id
+                          nome, avatar_url, tema, idioma, inicio_semana, moeda,
+                          criado_em, atualizado_em)
+core.chave_recuperacao   (id, usuario_id, hash, criado_em, usado_em)
+core.areas               (id, usuario_id, nome, cor, icone, ordem, criado_em)
+core.servicos_ativos     (usuario_id, servico_id, ativo, ativado_em)   -- PK (usuario_id, servico_id)
+core.eventos             (id, usuario_id, servico_origem, tipo, dados jsonb, criado_em)
+core.inbox               (id, usuario_id, titulo, origem_servico, origem_id,
+                          lida, criado_em, lida_em)
+core.notificacoes        (id, usuario_id, evento_id, canal, prioridade, titulo, corpo,
+                          enviada_em, lida_em, criado_em)
+core.perfil_hermes       (id, usuario_id, estilo_comunicacao, area_prioritaria,
+                          nivel_proatividade, atualizado_em)
+core.perfil_hermes_notas (id, usuario_id, categoria, texto, origem_evento, criado_em)
+```
+
+Padrões aplicados a toda tabela do `core` (valem como convenção pra `svc_<id>` também):
+- RLS ligado em todas, policy única `usuario_id = auth.uid()` (ou `id = auth.uid()` em `perfil`, que é 1:1 com a conta).
+- `usuario_id` tem `default auth.uid()` — o app nunca precisa passar esse campo nos inserts.
+- `grant usage on schema` + `alter default privileges` pra `authenticated`/`service_role` — sem isso, criar o schema não basta pra API enxergar as tabelas. `anon` não recebe grant: o Tlife não tem superfície anônima, tudo exige login.
+- Trigger `core.handle_new_user` cria a linha de `core.perfil` assim que a conta nasce em `auth.users`.
+- Trigger utilitário `core.set_atualizado_em` mantém `atualizado_em` em dia onde a coluna existe.
 
 ### Critério de pronto da casca
 
