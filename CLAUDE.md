@@ -76,7 +76,7 @@ Um SDK único (`tlife.*`) era a ideia original, mas entregava a todo serviço ca
 
 - Schema `core`: perfil, perfil_hermes + perfil_hermes_notas, chave_recuperacao, serviços ativos, eventos, inbox, notificações, áreas.
 - Um schema `svc_<id>` por serviço.
-- Para o schema próprio funcionar pela API, ele precisa estar nos *Exposed schemas* do Supabase (`[api] schemas` no `supabase/config.toml` local, e nas configurações da API na nuvem). A alternativa é usar prefixo no `public` (`svc_tasks_cards`).
+- Para o schema próprio funcionar pela API, ele precisa estar nos *Exposed schemas* do Supabase (`api.schemas` no `supabase/config.jsonc` local, e nas configurações da API na nuvem). A alternativa é usar prefixo no `public` (`svc_tasks_cards`).
 - **Onde roda:** local no desenvolvimento (`npx supabase start`, Supabase CLI sobre Docker), nuvem do Supabase em produção. O schema só muda por migração em `supabase/migrations/`, testada local (`supabase db reset`) e aplicada na nuvem com `supabase db push`.
 
 ### Critério de pronto da casca
